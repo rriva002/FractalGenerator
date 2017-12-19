@@ -34,6 +34,7 @@ public class Ray
 	public Vector3 march(double minDistance, double maxDistance, Fractal fractal)
 	{
 		double distance, totalDistance = 0.0;
+		Vector3 position;
 		
 		hit = false;
 		
@@ -41,7 +42,8 @@ public class Ray
 		while(totalDistance < maxDistance)
 		{
 			//Estimate the distance to the fractal from the current position along the ray.
-			distance = fractal.estimateDistance(Vector3.add(endpoint, Vector3.scale(direction, totalDistance)));
+			position = Vector3.add(endpoint, Vector3.scale(direction, totalDistance));
+			distance = fractal.estimateDistance(position);
 			
 			//Record a hit and break if the step distance is below the minimum distance threshold.
 			if(distance < minDistance)

@@ -21,7 +21,8 @@ public class Camera
 		adjustCamera(position, direction, up);
 	}
 
-	//Sets the camera's position and direction with the given vectors. The up vector should be orthogonal to the direction vector.
+	//Sets the camera's position and direction with the given vectors. The up vector should be
+	//orthogonal to the direction vector.
 	public void adjustCamera(Vector3 position, Vector3 direction, Vector3 up)
 	{
 		this.position = position;
@@ -81,11 +82,32 @@ public class Camera
 		return width;
 	}
 	
+	//Returns a grid of evenly spaced points within the specified pixel.
+	public Vector3[][] pixelGrid(double x, double y, int gridSize)
+	{
+		Vector3[][] grid = new Vector3[gridSize][gridSize];
+		Vector3 coordinates;
+		double rCorner = (maxX - minX) / (double) width * x + minX, r;
+		double sCorner = (maxY - minY) / (double) height * y + minY, s;
+		double increment = (maxX - minX) / (double) width / (double) gridSize;
+		
+		for(int i = 0; i < grid.length; i++)
+		{
+			for(int j = 0; j < grid[i].length; j++)
+			{
+				r = rCorner + ((double) j + 0.5) * increment;
+				s = sCorner + ((double) i + 0.5) * increment;
+				coordinates = Vector3.add(Vector3.scale(horizontal, r), Vector3.scale(vertical, s));
+				grid[j][i] = Vector3.add(imageCenter, coordinates);
+			}
+		}
+		
+		return grid;
+	}
+	
 	//Returns the position of the center of the specified pixel in three-dimensional space.
 	public Vector3 pixelPosition(double x, double y)
 	{
-		double r = (maxX - minX) / (double) width * (x + 0.5) + minX;
-		double s = (maxY - minY) / (double) height * (y + 0.5) + minY;
-		return Vector3.add(imageCenter, Vector3.add(Vector3.scale(horizontal, r), Vector3.scale(vertical, s)));
+		return pixelGrid(x, y, 1)[0][0];
 	}
 }

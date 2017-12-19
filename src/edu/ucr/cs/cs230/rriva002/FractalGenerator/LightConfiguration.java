@@ -24,7 +24,8 @@ public class LightConfiguration
 {
 	private FractalRenderer fractalRenderer;
 	private static final String ambientLight = "< Ambient Light";
-	private static final int rowsBeforeLights = 2, rowsAfterLights = 1, columns = Light.Parameter.values().length + 1;
+	private static final int rowsBeforeLights = 2, rowsAfterLights = 1;
+	private static final int columns = Light.Parameter.values().length + 1;
 	
 	//Constructor. Stores the fractal renderer.
 	public LightConfiguration(FractalRenderer fractalRenderer)
@@ -35,6 +36,7 @@ public class LightConfiguration
 	//Adds a row for the ambient light to the panel.
 	private void addAmbientLightRow(final JPanel panel)
 	{
+		double value;
 		Light.Parameter parameter;
 		JLabel label = new JLabel(ambientLight);
 		
@@ -49,7 +51,9 @@ public class LightConfiguration
 			}
 			else
 			{
-				panel.add(createTextField(parameter, fractalRenderer.getAmbientLight().getParameters().get(parameter)));
+				value = fractalRenderer.getAmbientLight().getParameters().get(parameter);
+				
+				panel.add(createTextField(parameter, value));
 			}
 		}
 		
@@ -100,32 +104,37 @@ public class LightConfiguration
 			@Override
 			public void actionPerformed(ActionEvent actionEvent)
 			{
-				Map<Light.Parameter, Double> parameters = new HashMap<Light.Parameter, Double>(Light.Parameter.values().length);
+				int sz = Light.Parameter.values().length, count = panel.getComponentCount(), index;
+				Map<Light.Parameter, Double> parameters = new HashMap<Light.Parameter, Double>(sz);
+				Light.Parameter parameter;
 				JTextField textField;
 				
 				//If the add button is clicked, check each value.
 				for(int i = 0; i < Light.Parameter.values().length; i++)
 				{
-					textField = (JTextField) panel.getComponent(panel.getComponentCount() - columns + i);
+					textField = (JTextField) panel.getComponent(count - columns + i);
+					parameter = Light.Parameter.values()[i];
 					
 					//Return if a value was invalid.
-					if(!checkField(Light.Parameter.values()[i], textField))
+					if(!checkField(parameter, textField))
 					{
 						return;
 					}
 					
 					//Store the value if the parameter's value is valid.
-					parameters.put(Light.Parameter.values()[i], Double.parseDouble(textField.getText()));
+					parameters.put(parameter, Double.parseDouble(textField.getText()));
 				}
 				
 				//Clear the row.
 				for(int i = 0; i < Light.Parameter.values().length; i++)
 				{
-					((JTextField) panel.getComponent(panel.getComponentCount() - rowsAfterLights * columns + i)).setText("");
+					index = count - rowsAfterLights * columns + i;
+					
+					((JTextField) panel.getComponent(index)).setText("");
 				}
 				
 				//Add a row containing the new light's values to the panel.
-				addRow(panel, parameters, panel.getComponentCount() / columns - rowsBeforeLights - 1);
+				addRow(panel, parameters, count / columns - rowsBeforeLights - 1);
 				panel.validate();
 			}
 		});
@@ -138,13 +147,15 @@ public class LightConfiguration
 	{
 		final JButton button = new JButton("Delete");
 		Light.Parameter parameter;
+		int index;
 		
 		//Add a text field for each parameter containing its corresponding value.
 		for(int i = 0; i < Light.Parameter.values().length; i++)
 		{
 			parameter = Light.Parameter.values()[i];
+			index = (id + rowsBeforeLights) * columns + i;
 			
-			panel.add(createTextField(parameter, parameters.get(parameter)), (id + rowsBeforeLights) * columns + i);
+			panel.add(createTextField(parameter, parameters.get(parameter)), index);
 		}
 		
 		button.setName(Integer.toString(id));
@@ -163,8 +174,10 @@ public class LightConfiguration
 				
 				panel.validate();
 				
+				int end = panel.getComponentCount() - columns * rowsAfterLights;
+				
 				//Adjust the index for each light's row after the deleted one.
-				for(int i = (index + 1) * columns - 1; i < panel.getComponentCount() - columns * rowsAfterLights; i += columns)
+				for(int i = (index + 1) * columns - 1; i < end; i += columns)
 				{
 					panel.getComponent(i).setName(Integer.toString(index - rowsBeforeLights));
 					index++;
@@ -333,13 +346,13 @@ public class LightConfiguration
 	private void updateLights(JPanel panel)
 	{
 		Map<Light.Parameter, Double> parameters;
-		int offset;
+		int offset, end = panel.getComponentCount() - rowsAfterLights * columns;
 		
 		//Delete the existing point lights.
 		fractalRenderer.getLights().clear();
 		
 		//Create a light according to each of the point light rows listed in the editor.
-		for(int i = (rowsBeforeLights - 1) * columns; i < panel.getComponentCount() - rowsAfterLights * columns; i++)
+		for(int i = (rowsBeforeLights - 1) * columns; i < end; i++)
 		{
 			parameters = new HashMap<Light.Parameter, Double>(Light.Parameter.values().length);
 			offset = panel.getComponent(i + columns - 1).getName().equals(ambientLight) ? 3 : 0;
@@ -371,9 +384,9 @@ public class LightConfiguration
 	//Returns true if the values in the light editor are valid.
 	public boolean verifyInput(JPanel panel)
 	{
-		int offset;
+		int offset, end = panel.getComponentCount() - rowsAfterLights * columns;
 		
-		for(int i = (rowsBeforeLights - 1) * columns; i < panel.getComponentCount() - rowsAfterLights * columns; i++)
+		for(int i = (rowsBeforeLights - 1) * columns; i < end; i++)
 		{
 			offset = panel.getComponent(i + columns - 1).getName().equals(ambientLight) ? 3 : 0;
 			i += offset;

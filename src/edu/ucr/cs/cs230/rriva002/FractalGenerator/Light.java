@@ -22,7 +22,10 @@ public class Light
 	//Constructor. Creates a light with the values specified in the given map.
 	public Light(Map<Light.Parameter, Double> parameters)
 	{
-		this.position = new Vector3(parameters.get(Parameter.X), parameters.get(Parameter.Y), parameters.get(Parameter.Z));
+		double x = parameters.get(Parameter.X), y = parameters.get(Parameter.Y);
+		double z = parameters.get(Parameter.Z);
+		
+		this.position = new Vector3(x, y, z);
 		this.brightness = Math.max(0.0, parameters.get(Parameter.BRIGHTNESS));
 		this.red = Math.max(0.0, Math.min(parameters.get(Parameter.RED), 1.0));
 		this.green = Math.max(0.0, Math.min(parameters.get(Parameter.GREEN), 1.0));
@@ -38,7 +41,8 @@ public class Light
 	//Returns the light's values in a map.
 	public Map<Parameter, Double> getParameters()
 	{
-		Map<Parameter, Double> parameters = new HashMap<Parameter, Double>(Parameter.values().length);
+		int size = Parameter.values().length;
+		Map<Parameter, Double> parameters = new HashMap<Parameter, Double>(size);
 		
 		parameters.put(Parameter.X, position.getX());
 		parameters.put(Parameter.Y, position.getY());

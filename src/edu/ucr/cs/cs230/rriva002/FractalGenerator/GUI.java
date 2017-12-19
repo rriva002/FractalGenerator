@@ -32,7 +32,7 @@ public class GUI implements KeyListener
 	private final JButton renderButton = new JButton("Render");
 	private final JLabel imageLabel = new JLabel(), infoLabel = new JLabel(" ");
 	private FractalRenderer fractalRenderer;
-	private static final String labelPrefix = " ", labelSuffix = ": ", antialiasingLabel = "Antialiasing";
+	private static final String labelPrefix = " ", labelSuffix = ": ", aaLabel = "Antialiasing";
 	private static final int parameterBoxIndex = 2;
 	private int width, height, antialiasingFactor = 1;
 	private boolean controlsEnabled = false;
@@ -42,7 +42,7 @@ public class GUI implements KeyListener
 	{
 		this.width = width;
 		this.height = height;
-		fractalRenderer = new FractalRenderer(width * antialiasingFactor, height * antialiasingFactor, fractals[0]);
+		fractalRenderer = new FractalRenderer(width, height, fractals[0]);
 		
 		for(Fractal fractal : fractals)
 		{
@@ -103,7 +103,7 @@ public class GUI implements KeyListener
 		
 		//Add the antialiasing label and text box to the parameter box.
 		antialiasing.addKeyListener(keyListener);
-		parameterBox.add(new JLabel(labelPrefix + antialiasingLabel + labelSuffix));
+		parameterBox.add(new JLabel(labelPrefix + aaLabel + labelSuffix));
 		parameterBox.add(antialiasing);
 		
 		//Add a label and text field for each parameter.
@@ -137,49 +137,6 @@ public class GUI implements KeyListener
 		controlBox.validate();
 	}
 	
-	//Antialiases the image.
-	private BufferedImage antialias(BufferedImage image)
-	{
-		if(antialiasingFactor > 1)
-		{
-	    	BufferedImage antialiased = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-	    	int color;
-			double red, green, blue;
-	    	
-			//Average the colors of each antialiasingFactor x antialiasingFactor square in the original image into one pixel.
-			for(int y = 0; y < height * antialiasingFactor; y += antialiasingFactor)
-	    	{
-				for(int x = 0; x < width * antialiasingFactor; x += antialiasingFactor)
-	        	{
-	    			red = 0.0;
-	    			green = 0.0;
-	    			blue = 0.0;
-	    			
-	    			for(int j = y; j < y + antialiasingFactor; j++)
-	    	    	{
-	    				for(int i = x; i < x + antialiasingFactor; i++)
-	    	        	{
-	    	        		red += (double) (image.getRGB(i, j) >> 16);
-	    	    			green += (double) ((image.getRGB(i, j) >> 8) & 0xFF);
-	    	    			blue += (double) (image.getRGB(i, j) & 0xFF);
-	    	        	}
-	    	    	}
-	    	    	
-	    	    	red /= Math.pow((double) antialiasingFactor, 2.0);
-	    	    	green /= Math.pow((double) antialiasingFactor, 2.0);
-	    	    	blue /= Math.pow((double) antialiasingFactor, 2.0);
-	    	    	color = (int) ((Math.round(red) << 16) + (Math.round(green) << 8) + Math.round(blue));
-	    			
-	    			antialiased.setRGB(x / antialiasingFactor, y / antialiasingFactor, color);
-	        	}
-	    	}
-			
-			image = antialiased;
-	    }
-		
-		return image;
-	}
-	
 	//Shows the light editor.
 	private void configureLights()
 	{
@@ -203,25 +160,27 @@ public class GUI implements KeyListener
 			{
 				//Start the timer.
 				long start = new Date().getTime();
+				int labelEnd;
+				double value, oldValue;
+				boolean valid = true, parameterChanged = false;
 				Fractal fractal = (Fractal) fractalSelector.getSelectedItem();
 				List<String[]> parameters = fractal.getParameters();
 				List<String> invalidParameters = new ArrayList<String>();
 				Box parameterBox = (Box) controlBox.getComponent(parameterBoxIndex);
 				JTextField textField;
 				String parameter;
-				double value;
-				boolean valid = true, parameterChanged = false;
 				
 				//Verify each parameter in the parameter box.
 				for(int i = 0; i < parameterBox.getComponentCount(); i += 2)
 				{
 					parameter = ((JLabel) parameterBox.getComponent(i)).getText();
-					parameter = parameter.substring(labelPrefix.length(), parameter.length() - labelSuffix.length());
+					labelEnd = parameter.length() - labelSuffix.length();
+					parameter = parameter.substring(labelPrefix.length(), labelEnd);
 					textField = (JTextField) parameterBox.getComponent(i + 1);
 					
 					try
 					{
-						if(parameter.equals(antialiasingLabel))
+						if(parameter.equals(aaLabel))
 						{
 							//Verify that the antialiasing factor is an integer of value 1 or more.
 							antialiasingFactor = Integer.parseInt(textField.getText());
@@ -231,8 +190,6 @@ public class GUI implements KeyListener
 								throw new Exception("Invalid value for " + parameter + ".");
 							}
 							
-							//Set the image dimensions according to the antialiasing factor. 
-							fractalRenderer.setImageDimensions(width * antialiasingFactor, height * antialiasingFactor);
 							continue;
 						}
 						else if(parameter.equals(Fractal.iterationsString))
@@ -242,9 +199,11 @@ public class GUI implements KeyListener
 						}
 						else
 						{
-							//Verify that the parameter's value is a number and determine whether or not it's been changed.
+							//Verify that the parameter's value is a number and determine whether or
+							//not it's been changed.
+							oldValue = Double.parseDouble(parameters.get(i / 2 - 1)[1]);
 							value = Double.parseDouble(textField.getText());
-							parameterChanged = parameterChanged || Double.parseDouble(parameters.get(i / 2 - 1)[1]) != value;
+							parameterChanged = parameterChanged || oldValue != value;
 						}
 						
 						//Verify that the parameter's value is valid.
@@ -257,7 +216,8 @@ public class GUI implements KeyListener
 					{
 						valid = false;
 						
-						//Set the text color to red and keep track of the parameters with invalid values.
+						//Set the text color to red and keep track of the parameters with invalid
+						//values.
 						textField.setForeground(Color.RED);
 						invalidParameters.add(parameter);
 					}
@@ -273,15 +233,19 @@ public class GUI implements KeyListener
 					}
 					
 					//Render the fractal and display the rendering time.
-					imageLabel.setIcon(new ImageIcon(antialias(fractalRenderer.render())));
-					infoLabel.setText("Rendered in " + (double) (new Date().getTime() - start) / 1000.0 + " seconds");
+					//imageLabel.setIcon(new ImageIcon(antialias(fractalRenderer.render())));
+					imageLabel.setIcon(new ImageIcon(fractalRenderer.render(antialiasingFactor)));
+					
+					double seconds = (double) (new Date().getTime() - start) / 1000.0;
+					
+					infoLabel.setText("Rendered in " + seconds + " seconds");
 					
 					controlsEnabled = true;
 				}
 				else
 				{
 					//Display a message telling which parameters had invalid values.
-					String invalid = "";
+					String invalid = "", errorMessage = "Invalid value";
 					
 					if(invalidParameters.size() > 1)
 					{
@@ -291,11 +255,13 @@ public class GUI implements KeyListener
 						}
 						
 						invalid += " and ";
+						errorMessage += "s";
 					}
 					
 					invalid += invalidParameters.get(invalidParameters.size() - 1);
+					errorMessage += " for " + invalid + ".";
 					
-					infoLabel.setText("Invalid value" + (invalidParameters.size() > 1 ? "s" : "") + " for " + invalid + ".");
+					infoLabel.setText(errorMessage);
 				}
 				
 				//Re-enable the control box.
@@ -341,7 +307,7 @@ public class GUI implements KeyListener
 					break;
 				case KeyEvent.VK_S:
 					//Move the camera backward if the S key is pressed.
-					successful = fractalRenderer.cameraZoom(fractalRenderer.directionBackward());
+					successful = fractalRenderer.cameraZoom(fractalRenderer.directionBack());
 					break;
 				case KeyEvent.VK_A:
 					//Move the camera left if the A key is pressed.
@@ -406,7 +372,8 @@ public class GUI implements KeyListener
 	public void show()
 	{
 		Box box = Box.createVerticalBox();
-		JButton lightButton = new JButton("Lights"); 
+		JButton lightButton = new JButton("Lights");
+		BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 		
 		fractalSelector.addActionListener(new ActionListener()
 		{
@@ -453,8 +420,8 @@ public class GUI implements KeyListener
 				if(controlsEnabled)
 				{
 					//The y value is reversed since y = 0 is at the top of the image.
-					int x = mouseEvent.getX() * antialiasingFactor;
-					int y = (height - mouseEvent.getY() - 1) * antialiasingFactor;
+					int x = mouseEvent.getX();
+					int y = (height - mouseEvent.getY() - 1);
 					boolean successful = false;
 					
 					switch(mouseEvent.getButton())
@@ -514,7 +481,7 @@ public class GUI implements KeyListener
 		controlBox.add(renderButton);
 		box.add(controlBox);
 		imageLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-		imageLabel.setIcon(new ImageIcon(new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)));
+		imageLabel.setIcon(new ImageIcon(bufferedImage));
 		imageLabel.addKeyListener(this);
 		box.add(imageLabel);
 		infoLabel.setAlignmentX(Component.CENTER_ALIGNMENT);

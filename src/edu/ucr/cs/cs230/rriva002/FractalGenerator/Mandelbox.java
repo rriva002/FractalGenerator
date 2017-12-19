@@ -7,12 +7,14 @@ public class Mandelbox extends Fractal
 {
 	private double scale, minRadiusSquared, boxFoldFactor;
 	private static final double defaultCameraAngle = Math.toRadians(-40.0);
-	private static final String scaleString = "Scale", minRadiusString = "Inner Radius", boxFoldString = "Box Fold Factor";
+	private static final String scaleString = "Scale", minRadiusString = "Inner Radius";
+	private static final String boxFoldString = "Box Fold Factor";
 	
 	//Constructor. Stores the given fractal parameters.
 	public Mandelbox(int iterations, double scale, double minRadius, double boxFoldFactor)
 	{
-		//The maximum ray marching distance and default camera position aren't set here due to their dependence on other values.
+		//The maximum ray marching distance and default camera position aren't set here due to their
+		//dependence on other values.
 		super(iterations, Double.NaN, null);
 		
 		this.scale = scale;
@@ -54,7 +56,8 @@ public class Mandelbox extends Fractal
 			z = Vector3.scale(boxFold(z), boxFoldFactor);
 			sphereRadius = sphereFold(z);
 			z = Vector3.add(Vector3.scale(z, scale * sphereRadius), v);
-			runningDerivative = runningDerivative * Math.abs(boxFoldFactor * sphereRadius * scale) + 1.0;
+			runningDerivative *= Math.abs(boxFoldFactor * sphereRadius * scale);
+			runningDerivative++;
 		}
 		
 		return z.magnitude() / Math.abs(runningDerivative);
@@ -166,15 +169,18 @@ public class Mandelbox extends Fractal
 		minDistance = 1.0 / (double) (getIterations() * 10.0);
 	}
 	
-	//Sets the default camera position and maximum ray marching distance according to the size of the Mandelbox.
+	//Sets the default camera position and maximum ray marching distance according to the size of
+	//the Mandelbox.
 	private void updateParameterDependents()
 	{
-		Vector3 position = new Vector3(Math.cos(defaultCameraAngle), Math.sin(defaultCameraAngle), 0.0);
+		double cosine = Math.cos(defaultCameraAngle), sine = Math.sin(defaultCameraAngle);
+		double tangent = Math.tan(Camera.fieldOfView / 2.0);
 		double halfSideLength = 2.0 * (scale < -1.0 ? 1.0 : (scale + 1.0) / (scale - 1.0));
+		Vector3 position = new Vector3(cosine, sine, 0.0);
 		
 		//This needs to be modified to fully account for the box fold factor.
 		halfSideLength *= 1.0 * (boxFoldFactor > 0.0 ? 1.0 : (scale - 1.0) / (scale + 1.0));
 		maxDistance = new Vector3(halfSideLength, halfSideLength, halfSideLength).magnitude();
-		defaultCameraPosition = Vector3.scale(position, maxDistance + halfSideLength / (Math.tan(Camera.fieldOfView / 2.0)));
+		defaultCameraPosition = Vector3.scale(position, maxDistance + halfSideLength / tangent);
 	}
 }

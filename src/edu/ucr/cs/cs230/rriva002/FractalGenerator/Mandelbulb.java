@@ -6,10 +6,12 @@ import java.util.List;
 public class Mandelbulb extends Fractal
 {
 	private double threshold, power, thetaFactor, phiFactor;
-	private static final String powerString = "Power", thetaFactorString = "Theta Factor", phiFactorString = "Phi Factor";
+	private static final String powerString = "Power", thetaFactorString = "Theta Factor";
+	private static final String phiFactorString = "Phi Factor";
 	
 	//Constructor. Stores the given fractal parameters.
-	public Mandelbulb(int iterations, double threshold, double power, double thetaFactor, double phiFactor)
+	public Mandelbulb(int iterations, double threshold, double power, double thetaFactor,
+		double phiFactor)
 	{
 		super(iterations, threshold, new Vector3(0.0, -2.5, 0.0));
 		
@@ -22,17 +24,19 @@ public class Mandelbulb extends Fractal
 	//Returns the estimated distance from the given position to the fractal's surface.
 	public double estimateDistance(Vector3 v)
 	{
-		Vector3 z = new Vector3(v);
-		double radius = z.magnitude(), runningDerivative = 1.0, theta, phi;
+		Vector3 zVector = new Vector3(v);
+		double radius = zVector.magnitude(), runningDerivative = 1.0, theta, phi, x, y, z;
 		
 		for(int i = 0; i < getIterations() && radius < threshold; i++)
 		{
-			theta = thetaFactor * Math.acos(z.getZ() / radius);
-			phi = phiFactor * Math.atan(z.getY() / z.getX());
+			theta = thetaFactor * Math.acos(zVector.getZ() / radius);
+			phi = phiFactor * Math.atan(zVector.getY() / zVector.getX());
 			runningDerivative = Math.pow(radius, power - 1.0) * power * runningDerivative + 1.0;
-			z = new Vector3(Math.sin(theta) * Math.cos(phi), Math.sin(phi) * Math.sin(theta), Math.cos(theta));
-			z = Vector3.add(Vector3.scale(z, Math.pow(radius, power)), v);
-			radius = z.magnitude();
+			x = Math.sin(theta) * Math.cos(phi);
+			y = Math.sin(phi) * Math.sin(theta);
+			z = Math.cos(theta);
+			zVector = Vector3.add(Vector3.scale(new Vector3(x, y, z), Math.pow(radius, power)), v);
+			radius = zVector.magnitude();
 		}
 		
 		return 0.5 * Math.log(radius) * radius / runningDerivative;
